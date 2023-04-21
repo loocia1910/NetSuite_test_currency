@@ -216,11 +216,11 @@ define([
             functionName: 'createCurrencyRowData()' // cl_XXX_client.js 에서 리턴하는 함수
         });
 
-        // form.addButton({
-        //     id: 'custpage_test_currency_button_search',
-        //     label: 'Search',
-        //     functionName: ''
-        // });
+        form.addButton({
+            id: 'custpage_test_currency_button_search',
+            label: 'Find All Record',
+            functionName: 'doFind()'
+        });
     };
 
     function emptyToNull(value) {

@@ -15,21 +15,46 @@ define([
         const res = JSON.parse(requestBody);
         const { searchDateFld, searchOptionFld } = res;
         
-        log.debug('post 요청 requestBody ==== ', requestBody);
         log.debug('post 요청 JSON.parse(requestBody) ==== ', res);
-        log.debug('post 요청 searchDateFld ==== ', searchDateFld); 
-        log.debug('post 요청 searchOptionFld ==== ', searchOptionFld); 
 
         const prefix = 'custrecord_test_currency_';
 
-        var customRecord = record.create({
+        const customRecord = record.create({
             type: 'customrecord_test_currency',
             isDynamic: true
         });
 
         customRecord.setValue({
             fieldId: prefix + 'search_date',
-            value: 'hello wordl 양현',
+            value: searchDateFld ,
+        });
+        customRecord.setValue({
+            fieldId: prefix + 'search_type',
+            value: searchOptionFld,
+        });
+        customRecord.setValue({
+            fieldId: prefix + 'cur_unit',
+            value: 'hello wordl cur_unit',
+        });
+        customRecord.setValue({
+            fieldId: prefix + 'cur_nm',
+            value: 'hello wordl',
+        });
+        customRecord.setValue({
+            fieldId: prefix + 'ttb',
+            value: 'hello wordl',
+        });
+        customRecord.setValue({
+            fieldId: prefix + 'tts',
+            value: 'hello wordl',
+        });
+        customRecord.setValue({
+            fieldId: prefix + 'deal_bas_r',
+            value: 'hello wordl',
+        });
+        customRecord.setValue({
+            fieldId: prefix + 'bkpr',
+            value: 'hello wordl',
         });
 
         customRecord.save();
