@@ -25,7 +25,6 @@ define([
         }
     };
 
-
     function createForm(model) {
         const form = ui.createForm({
             title : 'TEST_YH : 환율 조회'
@@ -41,7 +40,6 @@ define([
         
         return form;
     };
-
 
     function createField(form, model) { 
         form.addFieldGroup({
