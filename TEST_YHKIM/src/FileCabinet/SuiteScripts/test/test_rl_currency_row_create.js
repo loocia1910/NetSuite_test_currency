@@ -6,11 +6,17 @@
 
 define([
     'N/record',
-    'N/https'
-], function(record, https) {
+    'N/https',
+    './common_alias.js'
+], function(record, https, alias) {
     
     // 한국수출입은행(https://www.koreaexim.go.kr/) 요청 API 인증키
-    const KOREA_EXIM_AUTH_KEY = '3ksFj0B4242OrCSNNRQlKXzqXUaJhsiJ'
+    const KOREA_EXIM_AUTH_KEY = '3ksFj0B4242OrCSNNRQlKXzqXUaJhsiJ';
+    const RECORD = {
+      AP01 :  { name : 'test_currency', type : 'AP01', type_ko : '환율', type_en : 'exchange' },
+      AP02 :  { name : 'test_cur_ap02', type : 'AP02', type_ko : '대출금리', type_en : 'interest' },
+      AP03 :  { name : 'test_cur_ap03', type : 'AP03', type_ko : '국제금리', type_en : 'international'  },
+    };
 
     function post(requestBody) {
         // 날짜와 검색유형이 와야함
@@ -18,24 +24,25 @@ define([
         log.debug('post 요청 JSON.parse(requestBody) ==== ', res);
 
         const { searchDateFld, searchOptionFld } = res;
-        const CURRENCY_DATA_FROM_KOREA_EXIM = getCurrencyData(searchDateFld, searchOptionFld);
-        setRecordRow(CURRENCY_DATA_FROM_KOREA_EXIM, searchDateFld, searchOptionFld);
+        const searchOptObj = RECORD[searchOptionFld];
+        log.debug('post 요청 searchOptObj ==== ', searchOptObj);
+
+        const CURRENCY_DATA_FROM_KOREA_EXIM = getCurrencyData(searchDateFld, searchOptObj);
+        setRecordRow(CURRENCY_DATA_FROM_KOREA_EXIM, searchDateFld, searchOptObj);
         
         const response = {
             success: true,
             testTex: '저장 성공 응답 도착'
         };
 
+
         return JSON.stringify(response);
+
     };
 
-    function getCurrencyData( searchDate, searchOption ) {
+    function getCurrencyData( searchDate, searchOptObj ) {
         log.debug('post 요청 getCurrencyData 함수에 넘어온 searchDate ==== ', searchDate);
-        log.debug('post 요청 getCurrencyData 함수에 넘어온 searchOption ==== ', searchOption);
-
-        const requsttype = searchOption === 'AP01' ? 'exchange' : 
-                           searchOption === 'AP02' ? 'interest' : 
-                           searchOption === 'AP03' ? 'international' : null;
+        log.debug('post 요청 getCurrencyData 함수에 넘어온 searchOption ==== ', searchOptObj);
 
         const headers = {
             'Accept' : "application/hal+json;charset=utf-8",
@@ -43,29 +50,42 @@ define([
         };
 
         const res = https.get({
-          url:  `https://www.koreaexim.go.kr/site/program/financial/${requsttype}JSON?authkey=${KOREA_EXIM_AUTH_KEY}&searchdate=${searchDate}&data=${searchOption}`,
+          url:  `https://www.koreaexim.go.kr/site/program/financial/${searchOptObj.type_en}JSON?authkey=${KOREA_EXIM_AUTH_KEY}&searchdate=${searchDate}&data=${searchOptObj.type}`,
           headers
         }); 
-
-        log.debug('post 요청 getCurrencyData 함수 res ==== ', res);
+    
         log.debug('post 요청 getCurrencyData 함수  res.body ==== ', res.body);
+
         return JSON.parse(res.body);
+
     };
+    // prefix
+    function setRecordRow(list, searchDate, searchOptObj) {
 
-    function setRecordRow(list, searchDate, searchOption) {
-        const searchOptionCodeToTxt = searchOption === 'AP01' ? '환율' : 
-                                      searchOption === 'AP02' ? '대출금리' : 
-                                      searchOption === 'AP03' ? '국제금리' : '존재하지 않는 유형'
-        
+        if(searchOptObj.type === 'AP03') {
+            list = list.sofr_list;
+        } 
+
         for(const obj of list) {
-            const { result, cur_unit, ttb, tts, deal_bas_r, bkpr, cur_nm } = obj;
             log.debug("setRecordRow 함수 안에 obj ======= ", obj);
+            log.debug("setRecordRow 함수 안에 searchOptObj ======= ", searchOptObj);
+            log.debug("setRecordRow 함수 안에 searchOptObj.name ======= ", searchOptObj.name);
 
-            const prefix = 'custrecord_test_currency_';
+            const prefix = `custrecord_${searchOptObj.name}_`;
             const customRecord = record.create({
-                type: 'customrecord_test_currency',
+                type: `customrecord_${searchOptObj.name}`,
                 isDynamic: true
             });
+
+            for (const ali_obj of alias[searchOptObj.type] ) {
+                const key = ali_obj.id;
+
+                // if(obj[ali_obj.id] === null || obj[ali_obj.id] === undefined) continue;
+                customRecord.setValue({
+                    fieldId: prefix + key,
+                    value: obj[key]
+                });
+            };
 
             customRecord.setValue({
                 fieldId: prefix + 'search_date',
@@ -73,31 +93,7 @@ define([
             });
             customRecord.setValue({
                 fieldId: prefix + 'search_type',
-                value: searchOptionCodeToTxt,
-            });
-            customRecord.setValue({
-                fieldId: prefix + 'cur_unit',
-                value: cur_unit,
-            });
-            customRecord.setValue({
-                fieldId: prefix + 'cur_nm',
-                value: cur_nm,
-            });
-            customRecord.setValue({
-                fieldId: prefix + 'ttb',
-                value: ttb,
-            });
-            customRecord.setValue({
-                fieldId: prefix + 'tts',
-                value: tts,
-            });
-            customRecord.setValue({
-                fieldId: prefix + 'deal_bas_r',
-                value: deal_bas_r,
-            });
-            customRecord.setValue({
-                fieldId: prefix + 'bkpr',
-                value: bkpr,
+                value: searchOptObj.type_ko,
             });
 
             customRecord.save();

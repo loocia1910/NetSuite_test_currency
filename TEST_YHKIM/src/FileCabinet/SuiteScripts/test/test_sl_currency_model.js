@@ -8,8 +8,9 @@ define([
     'N/search',
     'N/format',
     'N/runtime',
-    'N/url'
-], function(record, search, format, runtime, url) {
+    'N/url',
+    './common_alias.js'
+], function(record, search, format, runtime, url, alias) {
 
     function entry(params, method) {
 
@@ -46,71 +47,65 @@ define([
     class GetModel {
         constructor(params) {
 
-            const PAGE_SIZE = 1000;
+            const PAGE_SIZE = 40;
 
-            this.resultArray = getResultSet(params, PAGE_SIZE);
+
+            // rec_prefix, rec_name, type (ap01, ap02..)
+            const rec_ap01_name = 'test_currency';
+            const rec_ap02_name = 'test_cur_ap02';
+            const rec_ap03_name = 'test_cur_ap03';
+
+            this.resultArray = getResultSet(params, PAGE_SIZE, rec_ap01_name, 'AP01');
+            this.resultArrayAP02 = getResultSet(params, PAGE_SIZE, rec_ap02_name, 'AP02');
+            this.resultArrayAP03 = getResultSet(params, PAGE_SIZE, rec_ap03_name, 'AP03');
             this.params = params
         }
     };
 
-    function getResultSet(params, pageSize) {
+    function getResultSet(params, pageSize, rec_name, type) {
         let resultSet = [];
 
-        const currencySearch = createCurrencySearch(params);
+        const currencySearch = createCurrencySearch(params, rec_name, type);
 
         const pagedData = currencySearch.runPaged({ pageSize: pageSize });
         let pageCount = Math.ceil(pagedData.count / pageSize);
         if (pageCount > 0) {
-            resultSet = fetchSearchResult(pagedData, pageCount);
+            resultSet = fetchSearchResult(pagedData, pageCount,  rec_name, type);
         }
 
         return resultSet;
     };
 
-
-    function createCurrencySearch(params) {
-        const prefix = 'custrecord_test_currency_';
-        const columns = [
-            'internalId',
-            prefix + 'search_date',
-            prefix + 'search_type',
-            prefix + 'cur_unit',
-            prefix + 'cur_nm',
-            prefix + 'ttb',
-            prefix + 'tts',
-            prefix + 'deal_bas_r',
-            prefix + 'bkpr',
-        ];
+    function createCurrencySearch(params, rec_name, type) {
+        const prefix = `custrecord_${rec_name}_`;
+        let columns = [];
+        
+        for( let obj of alias[type]) {
+            columns.push(prefix + obj.id);
+        }
 
         return search.create({
-            type: search.Type.CUSTOM_RECORD + '_test_currency',
+            type: search.Type.CUSTOM_RECORD + `_${rec_name}`,
             columns: columns
         })
     };
 
-    function fetchSearchResult(pagedData, pageCount) {
+    function fetchSearchResult(pagedData, pageCount, rec_name, type) {
 
         let resultSet = [];
 
-        const prefix = 'custrecord_test_currency_';
-
+        const prefix = `custrecord_${rec_name}_`;
 
         // 전체 페이지 데이터 추출
         for (let i = 0; i < pageCount; i++) {
             const page = pagedData.fetch({ index: i });
 
             page.data.forEach(rowData => {
-                resultSet.push({
-                    internalId  : rowData.getValue('internalId'),
-                    search_date : rowData.getValue(prefix + 'search_date'),
-                    search_type  : rowData.getValue(prefix + 'search_type'),
-                    cur_unit  : rowData.getValue(prefix + 'cur_unit'),
-                    cur_nm   : rowData.getValue(prefix + 'cur_nm'),
-                    ttb    : rowData.getValue(prefix + 'ttb'),
-                    tts : rowData.getValue(prefix + 'tts'),
-                    deal_bas_r   : rowData.getValue(prefix + 'deal_bas_r'),
-                    bkpr     : rowData.getValue(prefix + 'bkpr'),
-                });
+                const newRecord = {};
+                for( let obj of alias[type]) {
+                    newRecord[obj.id] = rowData.getValue(prefix + obj.id);
+                }
+                resultSet.push(newRecord);
             });
             
         }

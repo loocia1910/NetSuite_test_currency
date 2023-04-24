@@ -11,7 +11,8 @@ define([
     'N/url',
     'N/https',
     'N/format',
-], function(currentRecord, url, https, format) {
+    'N/ui/dialog',
+], function(currentRecord, url, https, format, dialog) {
 
     function pageInit(context) {
         AddStyle(
@@ -40,17 +41,10 @@ define([
         // A. searchDateFld, searchOptionFld의 값을 가져온다.
         const searchDateFld = currentRecord.get().getValue('custpage_test_currency_field_search_date');
         const searchDate = formatDateToString(searchDateFld) // ex) dateObj -> 2022/04/30
-                        //    .replace(/\//g, ''); // ex) dateObj -> 20220430
 
         const searchOptionFld = currentRecord.get().getValue('custpage_test_currency_field_search_option');
-
-        console.log("cl currency_client.js searchDateFld .get().getValue ===== ", searchDateFld);
-        console.log("cl currency_client.js searchDate 변경한 날짜 ===== ", searchDate);
-        console.log("cl currency_client.js searchOptionFld .get().getValue ===== ", searchOptionFld);
-
-        const response = await createInvoicePromise(searchDate, searchOptionFld);
-        console.log("cl currency_client.js response ===== ", response);
-
+        const response = await createCurrencyPromise(searchDate, searchOptionFld);
+        console.log("클라이언트  response ==== ", response)
 
         return response;
         } catch(e) {
@@ -78,22 +72,10 @@ define([
         }
     };
 
-    // function formatDateToString(dateObj) {
-    //     // ex) dateObj -> 04/30/2022
-    //     if (dateObj) {
-    //         const year = dateObj.getFullYear();
-    //         const month = dateObj.getFullMonth();
-    //         const date = dateObj.getFullDate();
-    //         return year + month + date;
-    //     } else {
-    //         return null; 
-    //     }
-    // };
-
 
     
     
-    function createInvoicePromise( searchDateFld, searchOptionFld ) { 
+    function createCurrencyPromise( searchDateFld, searchOptionFld ) { 
         
         const restletUrl = url.resolveScript({
             scriptId: 'customscript_test_rl_currency_crt',
