@@ -43,10 +43,18 @@ define([
         const searchDate = formatDateToString(searchDateFld) // ex) dateObj -> 2022/04/30
 
         const searchOptionFld = currentRecord.get().getValue('custpage_test_currency_field_search_option');
-        const response = await createCurrencyPromise(searchDate, searchOptionFld);
-        console.log("클라이언트  response ==== ", response)
+        const res = await createCurrencyPromise(searchDate, searchOptionFld);
+        const parsedRes = JSON.parse(res.body)
 
-        return response;
+        // if(parsedRes.success === false) {
+            dialog.alert({
+                title: 'Message',
+                message: parsedRes.message
+            })
+        // } else {
+        //     return res;
+        // }
+
         } catch(e) {
             throw(e);
         }

@@ -27,23 +27,33 @@ define([
         const searchOptObj = RECORD[searchOptionFld];
         log.debug('post 요청 searchOptObj ==== ', searchOptObj);
 
-        const CURRENCY_DATA_FROM_KOREA_EXIM = getCurrencyData(searchDateFld, searchOptObj);
-        setRecordRow(CURRENCY_DATA_FROM_KOREA_EXIM, searchDateFld, searchOptObj);
-        
-        const response = {
-            success: true,
-            testTex: '저장 성공 응답 도착'
-        };
+        const CURRENCY_DATA_FROM_KOREA_EXIM = getCurrencyData(searchDateFld, searchOptObj); //
 
+        let response = {};
+
+        // result = 1 : 성공, 2 : DATA코드 오류, 3 : 인증코드 오류, 4 : 일일제한횟수 마감
+        if(CURRENCY_DATA_FROM_KOREA_EXIM.length === 0 ) {
+            response.success = false;
+            response.message = '비영업일의 데이터, 혹은 영업당일 11시 이전에 해당일의 데이터를 요청할 경우 null 값이 반환됩니다.';
+        } else if (Number(CURRENCY_DATA_FROM_KOREA_EXIM[0].result) === 2) {
+            response.success = false;
+            response.message = 'DATA 코드 오류 입니다.'
+        } else if (Number(CURRENCY_DATA_FROM_KOREA_EXIM[0].result) === 3) {
+            response.success = false;
+            response.message = '인증코드 오류 입니다.'
+        } else if (Number(CURRENCY_DATA_FROM_KOREA_EXIM[0].result) === 4) {
+            response.success = false;
+            response.message = '일일제한횟수 1000번을 초과하였습니다.'
+        } else {
+            setRecordRow(CURRENCY_DATA_FROM_KOREA_EXIM, searchDateFld, searchOptObj);
+            response.success = true;
+            response.message = '레코드 저장에 성공하였습니다.';
+        }
 
         return JSON.stringify(response);
-
     };
 
     function getCurrencyData( searchDate, searchOptObj ) {
-        log.debug('post 요청 getCurrencyData 함수에 넘어온 searchDate ==== ', searchDate);
-        log.debug('post 요청 getCurrencyData 함수에 넘어온 searchOption ==== ', searchOptObj);
-
         const headers = {
             'Accept' : "application/hal+json;charset=utf-8",
             'Content-Type' : 'application/json'
@@ -53,13 +63,15 @@ define([
           url:  `https://www.koreaexim.go.kr/site/program/financial/${searchOptObj.type_en}JSON?authkey=${KOREA_EXIM_AUTH_KEY}&searchdate=${searchDate}&data=${searchOptObj.type}`,
           headers
         }); 
-    
-        log.debug('post 요청 getCurrencyData 함수  res.body ==== ', res.body);
+        
 
+        log.debug('post 요청 getCurrencyData 함수  res ==== ', res);
+        log.debug('post 요청 getCurrencyData 함수  res.body ==== ', res.body);
         return JSON.parse(res.body);
 
     };
-    // prefix
+
+
     function setRecordRow(list, searchDate, searchOptObj) {
 
         if(searchOptObj.type === 'AP03') {
@@ -79,8 +91,6 @@ define([
 
             for (const ali_obj of alias[searchOptObj.type] ) {
                 const key = ali_obj.id;
-
-                // if(obj[ali_obj.id] === null || obj[ali_obj.id] === undefined) continue;
                 customRecord.setValue({
                     fieldId: prefix + key,
                     value: obj[key]
